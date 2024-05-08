@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { fetchProducts } from './api';
 import { Link } from 'react-router-dom';
+import _debounce from 'lodash/debounce';
 import { Card, CardContent, Typography, Button, TextField, Grid, Select, MenuItem } from '@mui/material';
 
 const ProductsList = () => {
@@ -11,23 +12,23 @@ const ProductsList = () => {
   const [sortBy, setSortBy] = useState('price');
   const [order, setOrder] = useState('asc');
 
-  useEffect(() => {
-    const fetchData = async () => {
-      const data = await fetchProducts({ search_keyword: searchKeyword, min_price: minPrice, max_price: maxPrice, sort_by: sortBy, order: order });
-      setCategories(data);
-    };
-    fetchData();
-  }, [searchKeyword, minPrice, maxPrice, sortBy, order]);
+  const debouncedFetchData = _debounce(async (searchKeyword, minPrice, maxPrice, sortBy, order) => {
+    const data = await fetchProducts({ search_keyword: searchKeyword, min_price: minPrice, max_price: maxPrice, sort_by: sortBy, order: order });
+    setCategories(data);
+  }, 500);
 
-  const handleSearch = (event) => {
-    event.preventDefault();
-    // Trigger fetchData with updated searchKeyword
-  };
+  useEffect(() => {
+    debouncedFetchData(searchKeyword, minPrice, maxPrice, sortBy, order);
+
+    return () => {
+      debouncedFetchData.cancel();
+    };
+  }, [searchKeyword, minPrice, maxPrice, sortBy, order]);
 
   return (
     <div className="container products">
       <h1 className="mt-4 mb-4">Product Categories</h1>
-      <form onSubmit={handleSearch} className="mb-4">
+      <form className="mb-4">
         <Grid container spacing={2}>
           <Grid item xs={12} md={3}>
             <TextField
